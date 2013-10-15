@@ -1,14 +1,14 @@
--- makefile.cfg.ori    2013-10-14 17:24:52.000000000 -0700
-+++ makefile.cfg        2013-10-14 17:24:57.000000000 -0700
+--- makefile.cfg.orig	2013-10-14 17:40:20.000000000 -0700
++++ makefile.cfg	2013-10-14 17:38:57.000000000 -0700
 @@ -166,6 +166,11 @@
-        $(AR) libjpeg.a  $(LIBOBJECTS)
-        $(AR2) libjpeg.a
+ 	$(AR) libjpeg.a  $(LIBOBJECTS)
+ 	$(AR2) libjpeg.a
  
 +# without libtool: with shared library:
 +libjpeg.so: @A2K_DEPS@ $(LIBOBJECTS)
-+       $(RM) libjpeg.so
-+       $(CC) $(LDFLAGS) $(LIBOBJECTS)
++	$(RM) libjpeg.so
++	$(CC) $(LDFLAGS) $(LIBOBJECTS)
 +
  # with libtool:
  libjpeg.la: @A2K_DEPS@ $(LIBOBJECTS)
-        $(LIBTOOL) --mode=link $(CC) -o libjpeg.la $(LIBOBJECTS) \
+ 	$(LIBTOOL) --mode=link $(CC) -o libjpeg.la $(LIBOBJECTS) \

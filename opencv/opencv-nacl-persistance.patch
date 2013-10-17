@@ -1,147 +1,224 @@
-48a49,51
-> #include "naclmounts/base/Mount.h"
-> #include "naclmounts/base/MountManager.h"
-> #include "naclmounts/memory/MemMount.h"
-249,250c252,254
-<     FILE* file;
-<     gzFile gzfile;
----
->     KernelProxy* kp;
->     int file;
->     char* gzfile;
-280,281c284,289
-<     else if( fs->file )
-<         fputs( str, fs->file );
----
->     else if( fs->file != -1){
->         if(fs->kp != NULL)
->             fs->kp->write(fs->file, str, strlen(str));
->         else
->             CV_Error( CV_StsError, "NaclMount is not already setup");
->     }
-283,284c291,292
-<     else if( fs->gzfile )
-<         gzputs( fs->gzfile, str );
----
->     //else if( fs->gzfile )
->         //gzputs( fs->gzfile, str );
-310,311c318,321
-<     if( fs->file )
-<         return fgets( str, maxCount, fs->file );
----
->     if( fs->file != 1) {
->         fs->kp->read(fs->file, str, maxCount);
->         return str;
->     }
-313,314c323,324
-<     if( fs->gzfile )
-<         return gzgets( fs->gzfile, str, maxCount );
----
->     //if( fs->gzfile )
->         //return gzgets( fs->gzfile, str, maxCount );
-324,325c334,343
-<     if( fs->file )
-<         return feof(fs->file);
----
->     if( fs->file != -1){
->         char *c = (char*)malloc(sizeof(char)); 
->         int l = fs->kp->read(fs->file, c, 1); 
->         if(l > 0){
->             // restore to last position
->             fs->kp->lseek(fs->file, -1, SEEK_CUR);
->         }
->         //EOF if length is zero
->         return (l == 0) ? 1 : 0;
->     }
-327,328c345,346
-<     if( fs->gzfile )
-<         return gzeof(fs->gzfile);
----
->     //if( fs->gzfile )
->         //return gzeof(fs->gzfile);
-335,336c353,354
-<     if( fs->file )
-<         fclose( fs->file );
----
->     if( fs->file != -1)
->         fs->kp->close(fs->file);
-338,339c356,357
-<     else if( fs->gzfile )
-<         gzclose( fs->gzfile );
----
->     //else if( fs->gzfile )
->         //gzclose( fs->gzfile );
-350,351c368,369
-<     if( fs->file )
-<         rewind(fs->file);
----
->     if( fs->file != -1)
->         fs->kp->lseek(fs->file, 0, SEEK_SET);
-353,354c371,372
-<     else if( fs->gzfile )
-<         gzrewind(fs->gzfile);
----
->     //else if( fs->gzfile )
->         //gzrewind(fs->gzfile);
-365c383
-< #define CV_IS_FILE_STORAGE(fs) ((fs) != 0 && (fs)->flags == CV_FILE_STORAGE)
----
-> #define CV_IS_FILE_STORAGE(fs) ((fs)->file != -1 && (fs)->flags == CV_FILE_STORAGE)
-2741,2742c2759,2761
-<             fs->file = fopen(fs->filename, !fs->write_mode ? "rt" : !append ? "wt" : "a+t" );
-<             if( !fs->file )
----
->             fs->kp = MountManager::MMInstance()->kp();
->             fs->file = fs->kp->open(filename, !fs->write_mode ? O_RDONLY : O_WRONLY, 0);
->             if( fs->file == -1)
-2748,2751c2767,2770
-<             char mode[] = { fs->write_mode ? 'w' : 'r', 'b', compression ? compression : '3', '\0' };
-<             fs->gzfile = gzopen(fs->filename, mode);
-<             if( !fs->gzfile )
-<                 goto _exit_;
----
->             //char mode[] = { fs->write_mode ? 'w' : 'r', 'b', compression ? compression : '3', '\0' };
->             //fs->gzfile = gzopen(fs->filename, mode);
->             //if( !fs->gzfile )
->                 //goto _exit_;
-2785c2804
-<             fseek( fs->file, 0, SEEK_END );
----
->             fs->kp->lseek(fs->file, 0, SEEK_END);
-2796c2815,2820
-<             size_t file_size = fs->file ? ftell( fs->file ) : (size_t)0;
----
->             size_t file_size = (size_t)0;
->             if(fs->file != -1){
->                 off_t current = fs->kp->lseek(fs->file, 0, SEEK_CUR);
->                 file_size = (size_t)fs->kp->lseek(fs->file, 0, SEEK_END);
->                 fs->kp->lseek(fs->file, current, SEEK_SET);
->             }
-2822c2846
-<                 fseek( fs->file, -xml_buf_size, SEEK_END );
----
->                 fs->kp->lseek( fs->file, -xml_buf_size, SEEK_END );
-2827c2851
-<                     int line_offset = ftell( fs->file );
----
->                     int line_offset = fs->kp->lseek(fs->file, 0, SEEK_CUR );
-2844,2845c2868,2869
-<                 fs->file = fopen( fs->filename, "r+t" );
-<                 fseek( fs->file, last_occurence, SEEK_SET );
----
->                 fs->file = fs->kp->open( fs->filename, O_RDONLY, 0 );
->                 fs->kp->lseek( fs->file, last_occurence, SEEK_SET );
-2848c2872
-<                 fseek( fs->file, 0, SEEK_END );
----
->                 fs->kp->lseek( fs->file, 0, SEEK_END );
-2893,2894c2917,2918
-<                 fseek( fs->file, 0, SEEK_END );
-<                 buf_size = ftell( fs->file );
----
->                 fs->kp->lseek( fs->file, 0, SEEK_END );
->                 buf_size = fs->kp->lseek( fs->file, 0, SEEK_CUR );
-5190c5214
-<     return !fs.empty() && fs.obj->is_opened;
----
->     return !fs.empty() && fs->is_opened && fs->file != -1; 
+--- modules/core/src/persistence.cpp	2013-10-17 14:32:48.000000000 -0700
++++ modules/core/src/persistence.cpp.ori	2013-10-17 13:35:30.000000000 -0700
+@@ -46,9 +46,6 @@
+ #include <deque>
+ #include <iterator>
+ #include <wchar.h>
+-#include "naclmounts/base/Mount.h"
+-#include "naclmounts/base/MountManager.h"
+-#include "naclmounts/memory/MemMount.h"
+ 
+ #define USE_ZLIB 1
+ 
+@@ -249,9 +246,8 @@
+     CvString struct_tag;
+     int space;
+     char* filename;
+-    KernelProxy* kp;
+-    int file;
+-    char* gzfile;
++    FILE* file;
++    gzFile gzfile;
+     char* buffer;
+     char* buffer_start;
+     char* buffer_end;
+@@ -281,15 +277,11 @@
+ {
+     if( fs->outbuf )
+         std::copy(str, str + strlen(str), std::back_inserter(*fs->outbuf));
+-    else if( fs->file != -1){
+-        if(fs->kp != NULL)
+-            fs->kp->write(fs->file, str, strlen(str));
+-        else
+-            CV_Error( CV_StsError, "NaclMount is not already setup");
+-    }
++    else if( fs->file )
++        fputs( str, fs->file );
+ #if USE_ZLIB
+-    //else if( fs->gzfile )
+-        //gzputs( fs->gzfile, str );
++    else if( fs->gzfile )
++        gzputs( fs->gzfile, str );
+ #endif
+     else
+         CV_Error( CV_StsError, "The storage is not opened" );
+@@ -315,13 +307,11 @@
+         fs->strbufpos = i;
+         return j > 1 ? str : 0;
+     }
+-    if( fs->file != 1) {
+-        fs->kp->read(fs->file, str, maxCount);
+-        return str;
+-    }
++    if( fs->file )
++        return fgets( str, maxCount, fs->file );
+ #if USE_ZLIB
+-    //if( fs->gzfile )
+-        //return gzgets( fs->gzfile, str, maxCount );
++    if( fs->gzfile )
++        return gzgets( fs->gzfile, str, maxCount );
+ #endif
+     CV_Error( CV_StsError, "The storage is not opened" );
+     return 0;
+@@ -331,30 +321,22 @@
+ {
+     if( fs->strbuf )
+         return fs->strbufpos >= fs->strbufsize;
+-    if( fs->file != -1){
+-        char *c = (char*)malloc(sizeof(char)); 
+-        int l = fs->kp->read(fs->file, c, 1); 
+-        if(l > 0){
+-            // restore to last position
+-            fs->kp->lseek(fs->file, -1, SEEK_CUR);
+-        }
+-        //EOF if length is zero
+-        return (l == 0) ? 1 : 0;
+-    }
++    if( fs->file )
++        return feof(fs->file);
+ #if USE_ZLIB
+-    //if( fs->gzfile )
+-        //return gzeof(fs->gzfile);
++    if( fs->gzfile )
++        return gzeof(fs->gzfile);
+ #endif
+     return false;
+ }
+ 
+ static void icvCloseFile( CvFileStorage* fs )
+ {
+-    if( fs->file != -1)
+-        fs->kp->close(fs->file);
++    if( fs->file )
++        fclose( fs->file );
+ #if USE_ZLIB
+-    //else if( fs->gzfile )
+-        //gzclose( fs->gzfile );
++    else if( fs->gzfile )
++        gzclose( fs->gzfile );
+ #endif
+     fs->file = 0;
+     fs->gzfile = 0;
+@@ -365,11 +347,11 @@
+ 
+ static void icvRewind( CvFileStorage* fs )
+ {
+-    if( fs->file != -1)
+-        fs->kp->lseek(fs->file, 0, SEEK_SET);
++    if( fs->file )
++        rewind(fs->file);
+ #if USE_ZLIB
+-    //else if( fs->gzfile )
+-        //gzrewind(fs->gzfile);
++    else if( fs->gzfile )
++        gzrewind(fs->gzfile);
+ #endif
+     fs->strbufpos = 0;
+ }
+@@ -380,7 +362,7 @@
+ #define CV_FS_MAX_LEN 4096
+ 
+ #define CV_FILE_STORAGE ('Y' + ('A' << 8) + ('M' << 16) + ('L' << 24))
+-#define CV_IS_FILE_STORAGE(fs) ((fs)->file != -1 && (fs)->flags == CV_FILE_STORAGE)
++#define CV_IS_FILE_STORAGE(fs) ((fs) != 0 && (fs)->flags == CV_FILE_STORAGE)
+ 
+ #define CV_CHECK_FILE_STORAGE(fs)                       \
+ {                                                       \
+@@ -2756,18 +2738,17 @@
+ 
+         if( !isGZ )
+         {
+-            fs->kp = MountManager::MMInstance()->kp();
+-            fs->file = fs->kp->open(filename, !fs->write_mode ? O_RDONLY : O_WRONLY, 0);
+-            if( fs->file == -1)
++            fs->file = fopen(fs->filename, !fs->write_mode ? "rt" : !append ? "wt" : "a+t" );
++            if( !fs->file )
+                 goto _exit_;
+         }
+         else
+         {
+             #if USE_ZLIB
+-            //char mode[] = { fs->write_mode ? 'w' : 'r', 'b', compression ? compression : '3', '\0' };
+-            //fs->gzfile = gzopen(fs->filename, mode);
+-            //if( !fs->gzfile )
+-                //goto _exit_;
++            char mode[] = { fs->write_mode ? 'w' : 'r', 'b', compression ? compression : '3', '\0' };
++            fs->gzfile = gzopen(fs->filename, mode);
++            if( !fs->gzfile )
++                goto _exit_;
+             #else
+             CV_Error(CV_StsNotImplemented, "There is no compressed file storage support in this configuration");
+             #endif
+@@ -2801,7 +2782,7 @@
+         int buf_size = CV_FS_MAX_LEN*(fs->fmt == CV_STORAGE_FORMAT_XML ? 6 : 4) + 1024;
+ 
+         if( append )
+-            fs->kp->lseek(fs->file, 0, SEEK_END);
++            fseek( fs->file, 0, SEEK_END );
+ 
+         fs->write_stack = cvCreateSeq( 0, sizeof(CvSeq), fs->fmt == CV_STORAGE_FORMAT_XML ?
+                 sizeof(CvXMLStackRecord) : sizeof(int), fs->memstorage );
+@@ -2812,12 +2793,7 @@
+         fs->buffer_end = fs->buffer_start + buf_size;
+         if( fs->fmt == CV_STORAGE_FORMAT_XML )
+         {
+-            size_t file_size = (size_t)0;
+-            if(fs->file != -1){
+-                off_t current = fs->kp->lseek(fs->file, 0, SEEK_CUR);
+-                file_size = (size_t)fs->kp->lseek(fs->file, 0, SEEK_END);
+-                fs->kp->lseek(fs->file, current, SEEK_SET);
+-            }
++            size_t file_size = fs->file ? ftell( fs->file ) : (size_t)0;
+             fs->strstorage = cvCreateChildMemStorage( fs->memstorage );
+             if( !append || file_size == 0 )
+             {
+@@ -2843,12 +2819,12 @@
+                 char substr[] = "</opencv_storage>";
+                 int last_occurence = -1;
+                 xml_buf_size = MIN(xml_buf_size, int(file_size));
+-                fs->kp->lseek( fs->file, -xml_buf_size, SEEK_END );
++                fseek( fs->file, -xml_buf_size, SEEK_END );
+                 xml_buf = (char*)cvAlloc( xml_buf_size+2 );
+                 // find the last occurence of </opencv_storage>
+                 for(;;)
+                 {
+-                    int line_offset = fs->kp->lseek(fs->file, 0, SEEK_CUR );
++                    int line_offset = ftell( fs->file );
+                     char* ptr0 = icvGets( fs, xml_buf, xml_buf_size ), *ptr;
+                     if( !ptr0 )
+                         break;
+@@ -2865,11 +2841,11 @@
+                 if( last_occurence < 0 )
+                     CV_Error( CV_StsError, "Could not find </opencv_storage> in the end of file.\n" );
+                 icvCloseFile( fs );
+-                fs->file = fs->kp->open( fs->filename, O_RDONLY, 0 );
+-                fs->kp->lseek( fs->file, last_occurence, SEEK_SET );
++                fs->file = fopen( fs->filename, "r+t" );
++                fseek( fs->file, last_occurence, SEEK_SET );
+                 // replace the last "</opencv_storage>" with " <!-- resumed -->", which has the same length
+                 icvPuts( fs, " <!-- resumed -->" );
+-                fs->kp->lseek( fs->file, 0, SEEK_END );
++                fseek( fs->file, 0, SEEK_END );
+                 icvPuts( fs, "\n" );
+             }
+             fs->start_write_struct = icvXMLStartWriteStruct;
+@@ -2914,8 +2890,8 @@
+         {
+             if( !mem )
+             {
+-                fs->kp->lseek( fs->file, 0, SEEK_END );
+-                buf_size = fs->kp->lseek( fs->file, 0, SEEK_CUR );
++                fseek( fs->file, 0, SEEK_END );
++                buf_size = ftell( fs->file );
+             }
+             else
+                 buf_size = fs->strbufsize;
+@@ -5211,7 +5187,7 @@
+ 
+ bool FileStorage::isOpened() const
+ {
+-    return !fs.empty() && fs->is_opened && fs->file != -1; 
++    return !fs.empty() && fs.obj->is_opened;
+ }
+ 
+ void FileStorage::release()

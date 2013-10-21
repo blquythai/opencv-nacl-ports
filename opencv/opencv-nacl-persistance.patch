@@ -1,5 +1,5 @@
 --- modules/core/src/persistence.cpp.orig	2013-10-19 18:45:28.000000000 -0700
-+++ modules/core/src/persistence.cpp	2013-10-19 18:51:36.000000000 -0700
++++ modules/core/src/persistence.cpp	2013-10-20 22:17:44.000000000 -0700
 @@ -46,6 +46,9 @@
  #include <deque>
  #include <iterator>
@@ -42,7 +42,7 @@
  #endif
      else
          CV_Error( CV_StsError, "The storage is not opened" );
-@@ -307,11 +315,21 @@
+@@ -307,11 +315,25 @@
          fs->strbufpos = i;
          return j > 1 ? str : 0;
      }
@@ -57,6 +57,10 @@
 +            if(numRead == 0) break; // EOF
 +            str[i++] = *c;
 +        } while (*c != '\n' && i < maxCount - 1);
++
++        // EOF and nothing read
++        if (i == 0) return 0;
++
 +        str[i] = '\0';
 +        return str;
 +    }
@@ -68,7 +72,7 @@
  #endif
      CV_Error( CV_StsError, "The storage is not opened" );
      return 0;
-@@ -321,22 +339,30 @@
+@@ -321,22 +343,30 @@
  {
      if( fs->strbuf )
          return fs->strbufpos >= fs->strbufsize;
@@ -107,7 +111,7 @@
  #endif
      fs->file = 0;
      fs->gzfile = 0;
-@@ -347,11 +373,11 @@
+@@ -347,11 +377,11 @@
  
  static void icvRewind( CvFileStorage* fs )
  {
@@ -123,7 +127,7 @@
  #endif
      fs->strbufpos = 0;
  }
-@@ -362,7 +388,7 @@
+@@ -362,7 +392,7 @@
  #define CV_FS_MAX_LEN 4096
  
  #define CV_FILE_STORAGE ('Y' + ('A' << 8) + ('M' << 16) + ('L' << 24))
@@ -132,7 +136,7 @@
  
  #define CV_CHECK_FILE_STORAGE(fs)                       \
  {                                                       \
-@@ -556,7 +582,7 @@
+@@ -556,7 +586,7 @@
  
      if( fs->is_opened )
      {
@@ -141,7 +145,7 @@
          {
              if( fs->write_stack )
              {
-@@ -2738,17 +2764,18 @@
+@@ -2738,17 +2768,18 @@
  
          if( !isGZ )
          {
@@ -166,7 +170,7 @@
              #else
              CV_Error(CV_StsNotImplemented, "There is no compressed file storage support in this configuration");
              #endif
-@@ -2782,7 +2809,7 @@
+@@ -2782,7 +2813,7 @@
          int buf_size = CV_FS_MAX_LEN*(fs->fmt == CV_STORAGE_FORMAT_XML ? 6 : 4) + 1024;
  
          if( append )
@@ -175,7 +179,7 @@
  
          fs->write_stack = cvCreateSeq( 0, sizeof(CvSeq), fs->fmt == CV_STORAGE_FORMAT_XML ?
                  sizeof(CvXMLStackRecord) : sizeof(int), fs->memstorage );
-@@ -2793,7 +2820,12 @@
+@@ -2793,7 +2824,12 @@
          fs->buffer_end = fs->buffer_start + buf_size;
          if( fs->fmt == CV_STORAGE_FORMAT_XML )
          {
@@ -189,7 +193,7 @@
              fs->strstorage = cvCreateChildMemStorage( fs->memstorage );
              if( !append || file_size == 0 )
              {
-@@ -2819,12 +2851,12 @@
+@@ -2819,12 +2855,12 @@
                  char substr[] = "</opencv_storage>";
                  int last_occurence = -1;
                  xml_buf_size = MIN(xml_buf_size, int(file_size));
@@ -204,7 +208,7 @@
                      char* ptr0 = icvGets( fs, xml_buf, xml_buf_size ), *ptr;
                      if( !ptr0 )
                          break;
-@@ -2841,11 +2873,11 @@
+@@ -2841,11 +2877,11 @@
                  if( last_occurence < 0 )
                      CV_Error( CV_StsError, "Could not find </opencv_storage> in the end of file.\n" );
                  icvCloseFile( fs );
@@ -219,7 +223,7 @@
                  icvPuts( fs, "\n" );
              }
              fs->start_write_struct = icvXMLStartWriteStruct;
-@@ -2890,8 +2922,8 @@
+@@ -2890,8 +2926,8 @@
          {
              if( !mem )
              {
@@ -230,7 +234,7 @@
              }
              else
                  buf_size = fs->strbufsize;
-@@ -2928,7 +2960,7 @@
+@@ -2928,7 +2964,7 @@
  _exit_:
      if( fs )
      {
@@ -239,7 +243,7 @@
          {
              cvReleaseFileStorage( &fs );
          }
-@@ -5187,7 +5219,7 @@
+@@ -5187,7 +5223,7 @@
  
  bool FileStorage::isOpened() const
  {

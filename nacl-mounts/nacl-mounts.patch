@@ -1,0 +1,23 @@
+--- AppEngine/AppEngineUrlLoader.h	2011-06-30 18:57:51.000000000 -0700
++++ AppEngine/AppEngineUrlLoader.h	2013-10-15 14:33:00.000000000 -0700
+@@ -20,6 +20,7 @@
+ #include <ppapi/cpp/url_response_info.h>
+ #include <ppapi/cpp/var.h>
+ #include <ppapi/c/pp_errors.h>
++#include <ppapi/utility/completion_callback_factory.h>
+ #include <stdio.h>
+ #include "../base/MainThreadRunner.h"
+ 
+--- base/Entry.h	2011-06-30 18:57:51.000000000 -0700
++++ base/Entry.h	2013-10-15 14:33:56.000000000 -0700
+@@ -6,6 +6,10 @@
+ #ifndef PACKAGES_SCRIPTS_FILESYS_BASE_ENTRY_H_
+ #define PACKAGES_SCRIPTS_FILESYS_BASE_ENTRY_H_
+ 
++#ifndef MAXPATHLEN
++#define MAXPATHLEN 256
++#endif
++
+ #include "MountManager.h"
+ 
+ MountManager *mm = MountManager::MMInstance();

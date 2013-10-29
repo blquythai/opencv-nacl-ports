@@ -2,16 +2,16 @@
 NACL=$(NACL_PREFIX)/../bin/$(ARCH)-nacl
 CC=$(NACL)-gcc
 CFLAGS=-m$(BIT) -c -fPIC -I$(NACL_SDK_ROOT)/include -I$(NACL_PREFIX)/include
-LDFLAGS=-lpthread -shared -Wl,-soname -Wl,libfilesys.so -I$(NACL_SDK_ROOT)/include
+LDFLAGS=-lpthread -shared -Wl,-soname -Wl,libnaclmounts.so -I$(NACL_SDK_ROOT)/include
 
 OBJS=MountManager.o KernelProxy.o PathHandle.o MainThreadRunner.o Entry.o MemMount.o MemNode.o AppEngineUrlLoader.o AppEngineMount.o AppEngineNode.o
 
 all: shared
 
-shared: libfilesys.so
+shared: libnaclmounts.so
 
-libfilesys.so: $(OBJS)
-	$(CC) $(LDFLAGS) -o libfilesys.so $(OBJS)
+libnaclmounts.so: $(OBJS)
+	$(CC) $(LDFLAGS) -o libnaclmounts.so $(OBJS)
 
 MountManager.o: base/MountManager.cc
 	$(CC) $(CFLAGS) $< -o $@
@@ -35,4 +35,4 @@ AppEngineNode.o: AppEngine/AppEngineNode.cc
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm -f $(OBJS) libfilesys.so
+	rm -f $(OBJS) libnaclmounts.so

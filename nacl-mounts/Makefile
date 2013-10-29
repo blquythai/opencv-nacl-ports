@@ -1,7 +1,7 @@
 #ARCH=$1 BIT=$2
 NACL=$(NACL_PREFIX)/../bin/$(ARCH)-nacl
 CC=$(NACL)-gcc
-CFLAGS=-m$(BIT) -c -fPIC -I$(NACL_SDK_ROOT)/include -I$(NACL_PREFIX)/include
+CFLAGS=-m$(BIT) -c -fPIC -I$(NACL_SDK_ROOT)/$(NACL_PEPPER)/include -I$(NACL_PREFIX)/include
 LDFLAGS=-lpthread -shared -Wl,-soname -Wl,libnaclmounts.so -I$(NACL_SDK_ROOT)/include
 
 OBJS=MountManager.o KernelProxy.o PathHandle.o MainThreadRunner.o Entry.o MemMount.o MemNode.o AppEngineUrlLoader.o AppEngineMount.o AppEngineNode.o
@@ -12,6 +12,14 @@ shared: libnaclmounts.so
 
 libnaclmounts.so: $(OBJS)
 	$(CC) $(LDFLAGS) -o libnaclmounts.so $(OBJS)
+
+install-headers:
+	mkdir $(NACL_PREFIX)/include/naclmounts
+	mkdir $(NACL_PREFIX)/include/naclmounts/AppEngine
+	cp AppEngine/*.h $(NACL_PREFIX)/include/naclmounts/AppEngine
+	mkdir $(NACL_PREFIX)/include/naclmounts/base
+	cp base/*.h $(NACL_PREFIX)/include/naclmounts/base
+	mkdir $(NACL_PREFIX)/include/naclmounts/memory
 
 MountManager.o: base/MountManager.cc
 	$(CC) $(CFLAGS) $< -o $@

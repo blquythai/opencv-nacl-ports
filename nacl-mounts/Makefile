@@ -20,6 +20,7 @@ install-headers:
 	mkdir $(NACL_PREFIX)/include/naclmounts/base
 	cp base/*.h $(NACL_PREFIX)/include/naclmounts/base
 	mkdir $(NACL_PREFIX)/include/naclmounts/memory
+	cp memory/*.h $(NACL_PREFIX)/include/naclmounts/memory
 
 MountManager.o: base/MountManager.cc
 	$(CC) $(CFLAGS) $< -o $@

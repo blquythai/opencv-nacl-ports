@@ -48,7 +48,7 @@
      }
 -    if( fs->file )
 -        return fgets( str, maxCount, fs->file );
-+    if( fs->file != 1) {
++    if( fs->file != -1) {
 +        // Read until newline or end-of-line to mimic fgets
 +        char *c = (char*)malloc(sizeof(char));
 +        int i = 0;   
